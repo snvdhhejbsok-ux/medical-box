@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>صندوق الدواء الذكي - تشخيص الأقسام والأمراض</title>
+  <style>
+    :root {
+      --text: #ffffff;
+      --text-muted: #e2e8f0;
+      --accent-soft: #38bdf8;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-image: linear-gradient(rgba(10, 15, 28, 0.78), rgba(10, 15, 28, 0.85)), url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1920&q=80');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: var(--text);
+      margin: 0;
+      padding: 35px 25px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    #particle-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .header, .slides-wrapper, .modal {
+      position: relative;
+      z-index: 2;
+    }
+
+    .header {
+      text-align: center;
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: var(--text);
+      padding: 20px;
+      border-radius: 30px;
+      max-width: 1050px;
+      margin: 0 auto 35px auto;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .header h1 {
+      margin: 0 0 6px 0;
+      font-size: 1.8em;
+      color: #38bdf8;
+      font-weight: 600;
+    }
+
+    .header p {
+      color: var(--text-muted);
+      margin: 0;
+      font-size: 0.92em;
+    }
+
+    .slides-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 35px;
+      max-width: 1050px;
+      margin: 0 auto;
+    }
+
+    /* السلايدات */
+    .slide-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 28px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      opacity: 0.6;
+      transform: scale(0.96);
+      transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+      cursor: pointer;
+    }
+
+    /* تأثير النور والتوهج عند التركيز أو النقر على السلايد أو المربع */
+    .slide-card.active-slide, .slide-card:active, .slide-card:focus-within {
+      opacity: 1;
+      transform: scale(1);
+      background: rgba(15, 23, 42, 0.88);
+      border-color: #38bdf8;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(56, 189, 248, 0.45);
+    }
+
+    .slide-title {
+      margin: 0 0 16px 0;
+      color: var(--accent-soft);
+      font-size: 1.15em;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding-bottom: 10px;
+    }
+
+    .search-box {
+      margin-bottom: 14px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 12px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50px;
+      font-size: 0.9em;
+      outline: none;
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text);
+      box-sizing: border-box;
+      transition: all 0.25s ease;
+    }
+
+    .search-box input::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .search-box input:focus {
+      background: rgba(15, 23, 42, 0.9);
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+      transform: scale(1.01);
+    }
+
+    .dashboards-container {
+      height: 320px;
+      overflow-y: auto;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      background: rgba(15, 23, 42, 0.5);
+      margin-bottom: 16px;
+    }
+
+    .department-header {
+      color: #38bdf8;
+      font-size: 1em;
+      font-weight: 700;
+      margin: 18px 0 10px 0;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed rgba(56, 189, 248, 0.4);
+    }
+    .department-header:first-child {
+      margin-top: 4px;
+    }
+
+    .dashboard-item {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      transition: all 0.25s ease;
+    }
+
+    .dashboard-item:hover, .dashboard-item:active {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+      transform: scale(1.01);
+    }
+
+    .dashboard-item h4 {
+      margin: 0 0 6px 0;
+      color: #ffffff;
+      font-size: 0.88em;
+      font-weight: 600;
+    }
+
+    .symptom-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* المربعات (الأعراض) - تنور وتتوهج بوضوح تام عند النقر أو التحويم دون حجب النص */
+    .symptom-item {
+      font-size: 0.82em;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      padding: 6px 14px;
+      border-radius: 50px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      user-select: none;
+    }
+
+    .symptom-item:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+      transform: scale(1.04);
+    }
+
+    .symptom-item:active {
+      transform: scale(1.08);
+      background: rgba(56, 189, 248, 0.35);
+      border-color: #ffffff;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
+    }
+
+    .custom-symptom-box {
+      margin-bottom: 12px;
+    }
+
+    .custom-symptom-box label {
+      font-weight: 500;
+      font-size: 0.85em;
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+    }
+
+    .custom-symptom-box textarea {
+      width: 100%;
+      height: 45px;
+      padding: 10px 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 18px;
+      font-family: 'Segoe UI', Tahoma;
+      font-size: 0.88em;
+      resize: none;
+      background: rgba(15, 23, 42, 0.6);
+      color: #ffffff;
+      box-sizing: border-box;
+      outline: none;
+      transition: all 0.25s ease;
+    }
+
+    .custom-symptom-box textarea::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .custom-symptom-box textarea:focus {
+      background: rgba(15, 23, 42, 0.9);
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+      transform: scale(1.01);
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .hospitals-split {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .glass-sub-box {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 22px;
+      padding: 16px;
+      transition: all 0.25s ease;
+    }
+
+    .glass-sub-box:hover {
+      border-color: rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+
+    .glass-sub-box h3 {
+      margin: 0 0 10px 0;
+      color: #38bdf8;
+      font-size: 0.95em;
+      font-weight: 600;
+    }
+
+    .cards-scroll {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 120px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      padding-left: 4px;
+    }
+
+    .pill-info-card {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 8px 14px;
+      border-radius: 50px;
+      font-size: 0.82em;
+      color: #ffffff;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .pill-info-card:hover, .pill-info-card:active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+      transform: scale(1.02);
+    }
+
+    .pill-info-card strong {
+      color: #38bdf8;
+    }
+
+    .ratings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .rating-row {
+      background: rgba(15, 23, 42, 0.5);
+      padding: 12px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.25s ease;
+    }
+
+    .rating-row:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+      transform: scale(1.02);
+      background: rgba(15, 23, 42, 0.7);
+    }
+
+    .rating-row label {
+      font-size: 0.82em;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+      color: #38bdf8;
+    }
+
+    .rating-row select {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 50px;
+    }
+
+    /* الأزرار العادية - تنور وتتوهج عند الضغط والتحويم بنقاء النص */
+    .btn {
+      width: 100%;
+      padding: 12px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 50px;
+      background: rgba(255, 255, 255, 0.09);
+      backdrop-filter: blur(6px);
+      color: #ffffff;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.88em;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .btn:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: #38bdf8;
+      transform: scale(1.025);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+    }
+
+    .btn:active {
+      transform: scale(1.06);
+      background: rgba(56, 189, 248, 0.4);
+      border-color: #ffffff;
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.8);
+    }
+
+    .btn-emergency {
+      border-color: rgba(252, 165, 165, 0.5);
+      background: rgba(239, 68, 68, 0.16);
+    }
+
+    .btn-emergency:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: #fca5a5;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+    }
+
+    .result-box {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 14px 20px;
+      border-radius: 20px;
+      margin-top: 8px;
+      white-space: pre-line;
+      line-height: 1.6;
+      font-size: 0.85em;
+      min-height: 85px;
+      max-height: 140px;
+      overflow-y: auto;
+      color: #ffffff;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .result-box:hover, .result-box:active {
+      background: rgba(15, 23, 42, 0.85);
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .modal-content {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(20px);
+      padding: 22px;
+      border-radius: 26px;
+      width: 400px;
+      max-width: 90%;
+      text-align: center;
+      border: 1px solid #38bdf8;
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.4);
+      color: #ffffff;
+    }
+
+    .modal-content h3 { color: #38bdf8; margin-top: 0; }
+    .modal-content p { color: var(--text-muted); font-size: 0.84em; }
+
+    input[type="number"], select, input[type="date"], input[type="text"], .modal-content textarea {
+      width: 92%;
+      padding: 10px 14px;
+      margin: 6px 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50px;
+      text-align: right;
+      font-family: 'Segoe UI', Tahoma;
+      font-size: 0.84em;
+      background: rgba(15, 23, 42, 0.8);
+      color: #ffffff;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    input[type="number"]:focus, select:focus, input[type="date"]:focus, input[type="text"]:focus, .modal-content textarea:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+
+    .modal-content textarea {
+      border-radius: 16px;
+    }
+
+    select option {
+      background: #0f172a;
+      color: #ffffff;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- شاشة النقاط المتحركة التفاعلية مع الماوس -->
+  <canvas id="particle-canvas"></canvas>
+
+  <div class="header">
+    <h1>🏥 صندوق الدواء الذكي (MEDICAL BOX)</h1>
+    <p>تشخيص، أقسام طبية تخصصية، تمريض منزلي، تبرعات، وعيادات</p>
+  </div>
+
+  <div class="slides-wrapper">
+
+    <!-- السلايد 1 -->
+    <section class="slide-card">
+      <h2 class="slide-title">1️⃣ لوحات الأقسام الطبية والأعراض التفصيلية</h2>
+      
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 ابحث في جميع الأقسام (أسنان، باطنة، عظام، جلدية، قلب)..." onkeyup="filterDashboards()">
+      </div>
+
+      <div id="dashboardsList" class="dashboards-container"></div>
+
+      <div class="custom-symptom-box">
+        <label for="customSymptomsInput">💭 أو اكتب ما تحس به مباشرة هنا:</label>
+        <textarea id="customSymptomsInput" placeholder="مثال: عندي وجع في راسي أو ألم بالأسنان..."></textarea>
+      </div>
+
+      <button class="btn" onclick="runDiagnosis()">🔬 تشخيص الأمراض وعرض العلاج</button>
+
+      <h4 style="margin: 14px 0 6px 0; color: #38bdf8; font-weight: 600;">📋 الروشتة والأرشيف النشط:</h4>
+      <div id="output" class="result-box">اختر الأعراض من الأقسام بالأعلى أو اكتبها ثم اضغط على زر تشخيص الأمراض...</div>
+    </section>
+
+    <!-- السلايد 2 -->
+    <section class="slide-card">
+      <h2 class="slide-title">2️⃣ الخدمات الطبية والملف الصحي</h2>
+      <div class="services-grid">
+        <button class="btn" onclick="toggleNursingModal(true)">💉 طلب مريض منزلي (حقن وعناية بالبيت)</button>
+        <button class="btn" onclick="togglePharmacyModal(true)">💊 طلب أدوية دليفري (من صيدليات مصر)</button>
+        <button class="btn btn-emergency" onclick="triggerEmergencySOS()">🚨 طوارئ فورية وإرسال اللوكيشن (SOS)</button>
+        <button class="btn" onclick="toggleArchiveModal(true)">📁 الأرشيف والتاريخ الطبي للمريض</button>
+        <button class="btn" onclick="toggleClinicModal(true)">🏛️ حجز موعد في عيادة خاصة</button>
+        <button class="btn" onclick="toggleBookingModal(true)">🏨 حجز موعد في مستشفى</button>
+      </div>
+    </section>
+
+    <!-- السلايد 3 -->
+    <section class="slide-card">
+      <h2 class="slide-title">3️⃣ بنوك الدم والمستشفيات ذات الأماكن الشاغرة</h2>
+      
+      <div class="hospitals-split">
+        <div class="glass-sub-box">
+          <h3>🩸 بنوك الدم والمستشفيات المحتاجة للتبرعات العاجلة:</h3>
+          <div class="cards-scroll">
+            <div class="pill-info-card">
+              <strong>مستشفى أبولدو العام:</strong> بحاجة لفصيلة دم (O-) وحالات رعاية.
+            </div>
+            <div class="pill-info-card">
+              <strong>معهد الأورام القومي:</strong> استقبال تبرعات مالية وصفائح دم للمرضى.
+            </div>
+            <div class="pill-info-card">
+              <strong>بنك الدم الرئيسي (القاهرة):</strong> نقص حاد في فصائل (B+ و A-).
+            </div>
+          </div>
+          <button class="btn" onclick="findNearestDonationLocation()">📍 أقرب مكان للتبرع (حسب موقعك GPS)</button>
+        </div>
+
+        <div class="glass-sub-box">
+          <h3>🛏️ المستشفيات التي تحتوي على أماكن وأسرة شاغرة الآن:</h3>
+          <div class="cards-scroll">
+            <div class="pill-info-card">
+              <strong>مستشفى قصر العيني:</strong> متوفر (3 أسرة رعاية مركزة + 12 سرير طوارئ).
+            </div>
+            <div class="pill-info-card">
+              <strong>مستشفى دار الفؤاد:</strong> متوفر (2 غرفة عادية + سرير عمليات عاجلة).
+            </div>
+            <div class="pill-info-card">
+              <strong>مستشفى السلام الدولي:</strong> متوفر (5 أسرة قسم داخلي + حضانة أطفال).
+            </div>
+          </div>
+          <button class="btn" onclick="checkAvailableBedsGPS()">📍 عرض أقرب مستشفى بها مكان شاغر (حسب موقعك)</button>
+        </div>
+      </div>
+
+      <h4 style="margin: 12px 0 6px 0; color: #38bdf8; font-weight: 600;">📍 أرشيف ونتائج أقرب مستشفى وبنك دم (GPS):</h4>
+      <div id="hospitalArchiveOutput" class="result-box">اضغط على أحد أزرار تحديد الموقع بالأعلى لمعرفة أقرب مستشفى شاغر أو أقرب بنك دم لموقعك الحالي...</div>
+    </section>
+
+    <!-- السلايد 4 -->
+    <section class="slide-card">
+      <h2 class="slide-title">4️⃣ تقييمات النظام (التطبيق، المستشفيات، الأطباء، والممرضين)</h2>
+      
+      <div class="ratings-grid">
+        <div class="rating-row">
+          <label>تقييم التطبيق (من 5):</label>
+          <select id="appRating">
+            <option value="">-- اختر تقييم التطبيق --</option>
+            <option value="5 نجوم (ممتاز جداً)">⭐ 5 - ممتاز جداً</option>
+            <option value="4 نجوم (جيد جداً)">⭐ 4 - جيد جداً</option>
+            <option value="3 نجوم (جيد)">⭐ 3 - جيد</option>
+            <option value="2 نجوم (مقبول)">⭐ 2 - مقبول</option>
+            <option value="1 نجمة (ضعيف)">⭐ 1 - ضعيف</option>
+          </select>
+        </div>
+
+        <div class="rating-row">
+          <label>تقييم المستشفى (من 10):</label>
+          <select id="hospitalRating">
+            <option value="">-- اختر المستشفى --</option>
+            <option value="مستشفى قصر العيني">مستشفى قصر العيني</option>
+            <option value="مستشفى الدمرداش الجامعي">مستشفى الدمرداش الجامعي</option>
+            <option value="مستشفى دار الفؤاد">مستشفى دار الفؤاد</option>
+            <option value="مستشفى السلام الدولي">مستشفى السلام الدولي</option>
+            <option value="مستشفى السعودي الألماني">مستشفى السعودي الألماني</option>
+            <option value="مستشفى الشاطبي الجامعي">مستشفى الشاطبي الجامعي</option>
+          </select>
+          <select id="hospScore">
+            <option value="">-- الدرجة من 10 --</option>
+            <option value="10/10">10 / 10</option>
+            <option value="9/10">9 / 10</option>
+            <option value="8/10">8 / 10</option>
+            <option value="7/10">7 / 10</option>
+            <option value="6/10">6 / 10</option>
+            <option value="5/10">5 / 10</option>
+          </select>
+        </div>
+
+        <div class="rating-row">
+          <label>تقييم الطبيب (من 10):</label>
+          <select id="doctorRating">
+            <option value="">-- اختر الطبيب أو العيادة --</option>
+            <option value="د. أحمد ممدوح (أسنان)">د. أحمد ممدوح (أسنان)</option>
+            <option value="د. محمود الشريف (مخ وأعصاب)">د. محمود الشريف (مخ وأعصاب)</option>
+            <option value="د. نيفين حامد (باطنة وسكري)">د. نيفين حامد (باطنة وسكري)</option>
+            <option value="د. طارق العوضي (قلب)">د. طارق العوضي (قلب)</option>
+            <option value="د. سامح البحيري (عظام)">د. سامح البحيري (عظام)</option>
+            <option value="د. هبة عبد الرحمن (أطفال)">د. هبة عبد الرحمن (أطفال)</option>
+          </select>
+          <select id="docScore">
+            <option value="">-- الدرجة من 10 --</option>
+            <option value="10/10">10 / 10</option>
+            <option value="9/10">9 / 10</option>
+            <option value="8/10">8 / 10</option>
+            <option value="7/10">7 / 10</option>
+            <option value="6/10">6 / 10</option>
+            <option value="5/10">5 / 10</option>
+          </select>
+        </div>
+
+        <div class="rating-row">
+          <label>تقييم الممرض/ة (من 10):</label>
+          <select id="nurseRating">
+            <option value="">-- اختر الممرض المنزلي --</option>
+            <option value="ممرض. إسلام الشاذلي">ممرض. إسلام الشاذلي</option>
+            <option value="ممرضة. آلاء عبد الرحمن">ممرضة. آلاء عبد الرحمن</option>
+            <option value="ممرض. محمد إبراهيم">ممرض. محمد إبراهيم</option>
+            <option value="ممرضة. مريم عادل">ممرضة. مريم عادل</option>
+          </select>
+          <select id="nurseScore">
+            <option value="">-- الدرجة من 10 --</option>
+            <option value="10/10">10 / 10</option>
+            <option value="9/10">9 / 10</option>
+            <option value="8/10">8 / 10</option>
+            <option value="7/10">7 / 10</option>
+            <option value="6/10">6 / 10</option>
+            <option value="5/10">5 / 10</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn" onclick="submitRatings()">✨ إرسال وحفظ التقييمات</button>
+    </section>
+
+    <!-- السلايد 5 -->
+    <section class="slide-card" style="text-align: center;">
+      <h2 class="slide-title">5️⃣ تقديم الشكاوى الطبية وحماية حقوق المرضى</h2>
+      <p style="color: var(--text-muted); margin-bottom: 14px; font-size: 0.9em;">⚠️ هل تعرضت لسوء معاملة أو إهمال في أي مستشفى؟ يمكنك تسجيل شكوى رسمية لمتابعتها فوراً.</p>
+      <button class="btn" style="max-width: 400px;" onclick="toggleComplaintModal(true)">📝 تقديم شكوى رسمية ضد مستشفى</button>
+    </section>
+
+  </div>
+
+  <!-- النوافذ المنبثقة (Modals) -->
+  <div id="complaintModal" class="modal">
+    <div class="modal-content">
+      <h3>⚠️ تقديم شكوى ضد مستشفى</h3>
+      <p>نحن نأخذ شكواك بجدية تامة لمراجعة جودة الخدمة.</p>
+      <input type="text" id="compPatientName" placeholder="اسم المقدم أو المريض بالكامل">
+      <select id="compHospitalSelect">
+        <option value="">-- اختر المستشفى المشتكى عليه --</option>
+        <option value="مستشفى قصر العيني">مستشفى قصر العيني</option>
+        <option value="مستشفى الدمرداش الجامعي">مستشفى الدمرداش الجامعي</option>
+        <option value="مستشفى دار الفؤاد">مستشفى دار الفؤاد</option>
+        <option value="مستشفى السلام الدولي">مستشفى السلام الدولي</option>
+        <option value="مستشفى السعودي الألماني">مستشفى السعودي الألماني</option>
+        <option value="مستشفى الشاطبي الجامعي">مستشفى الشاطبي الجامعي</option>
+        <option value="مستشفى آخر (أو عام)">مستشفى آخر (أو عام)</option>
+      </select>
+      <textarea id="compDetails" placeholder="اكتب تفاصيل الشكوى (سوء معاملة، إهمال، تأخير...)" style="height: 55px; resize: none;"></textarea>
+      <button class="btn" onclick="submitComplaint()">إرسال الشكوى رسمياً</button>
+      <button class="btn" style="margin-top:6px; opacity: 0.75;" onclick="toggleComplaintModal(false)">إغلاق</button>
+      <div id="compResult" style="margin-top: 8px; font-weight: bold; font-size: 0.8em;"></div>
+    </div>
+  </div>
+
+  <div id="nursingModal" class="modal">
+    <div class="modal-content">
+      <h3>💉 دليل التمريض المنزلي (إعطاء حقن بالبيت)</h3>
+      <p>اختر الممرض وسيصلك لمنزلك مع تحديد موقعك بـ GPS.</p>
+      <input type="text" id="nursingPatientName" placeholder="اسم المريض بالكامل">
+      <input type="text" id="nursingAddress" placeholder="عنوان المنزل بالتفصيل">
+      <select id="nursingSelect">
+        <option value="">-- اختر ممرض / ممرضة الزيارة --</option>
+        <option value="ممرض. إسلام الشاذلي (حقن وريد وعضل)">ممرض. إسلام الشاذلي (حقن وريد وعضل)</option>
+        <option value="ممرضة. آلاء عبد الرحمن (محاليل وعناية)">ممرضة. آلاء عبد الرحمن (محاليل وعناية)</option>
+        <option value="ممرض. محمد إبراهيم (رعاية طوارئ منزلية)">ممرض. محمد إبراهيم (رعاية طوارئ منزلية)</option>
+        <option value="ممرضة. مريم عادل (تغيير جروح وحقن)">ممرضة. مريم عادل (تغيير جروح وحقن)</option>
+      </select>
+      <select id="nursingServiceType">
+        <option value="">-- نوع الخدمة المطلوبة بالمنزل --</option>
+        <option value="حقنة عضل أو وريد فقط">حقنة عضل أو وريد فقط</option>
+        <option value="تركيب محلول وكانيولا">تركيب محلول وكانيولا</option>
+        <option value="قياس علامات حيوية وسكر ومتابعة">قياس علامات حيوية وسكر ومتابعة</option>
+        <option value="تغيير على الجروح الطبية">تغيير على الجروح الطبية</option>
+      </select>
+      <button class="btn" onclick="requestHomeNurse()">إرسال الموقع والطلب للممرض</button>
+      <button class="btn" style="margin-top:6px; opacity: 0.75;" onclick="toggleNursingModal(false)">إغلاق</button>
+      <div id="nursingResult" style="margin-top: 8px; font-weight: bold; font-size: 0.8em;"></div>
+    </div>
+  </div>
+
+  <div id="pharmacyModal" class="modal">
+    <div class="modal-content">
+      <h3>💊 طلب أدوية دليفري (توصيل سريع)</h3>
+      <p>اطلب أدويتك وتصلك حتى باب البيت.</p>
+      <input type="text" id="pharmacyPatientName" placeholder="اسم المريض بالكامل">
+      <input type="text" id="pharmacyAddress" placeholder="عنوان التوصيل بالتفصيل">
+      <select id="pharmacySelect">
+        <option value="">-- اختر صيدلية التوصيل --</option>
+        <option value="صيدليات العزبي (19600)">صيدليات العزبي (19600)</option>
+        <option value="صيدليات سيف (19110)">صيدليات سيف (19110)</option>
+        <option value="صيدليات الدواء المصري (19011)">صيدليات الدواء المصري (19011)</option>
+        <option value="صيدليات رشدي (19669)">صيدليات رشدي (19669)</option>
+        <option value="صيدليات الإسعاف المصرية">صيدليات الإسعاف (خدمة سريعة)</option>
+      </select>
+      <textarea id="pharmacyMedicines" placeholder="اكتب أسماء الأدوية أو ارفق الروشتة هنا..." style="height: 45px; resize: none;"></textarea>
+      <button class="btn" onclick="confirmPharmacyOrder()">تأكيد طلب الدليفري</button>
+      <button class="btn" style="margin-top:6px; opacity: 0.75;" onclick="togglePharmacyModal(false)">إغلاق</button>
+      <div id="pharmacyResult" style="margin-top: 8px; font-weight: bold; font-size: 0.8em;"></div>
+    </div>
+  </div>
+
+  <div id="clinicModal" class="modal">
+    <div class="modal-content">
+      <h3>🏛️ حجز موعد في عيادة طبية خاصة</h3>
+      <p>احجز كشفك مباشرة مع نخبة أطباء العيادات.</p>
+      <input type="text" id="clinicPatientName" placeholder="اسم المريض بالكامل">
+      <select id="clinicSelect">
+        <option value="">-- اختر العيادة والدكتور --</option>
+        <option value="عيادة الأسنان وعلاج الجذور (د. أحمد ممدوح)">عيادة الأسنان وعلاج الجذور (د. أحمد ممدوح)</option>
+        <option value="عيادة المخ والأعصاب (د. محمود الشريف)">عيادة المخ والأعصاب (د. محمود الشريف)</option>
+        <option value="عيادة الباطنة والسكري (د. نيفين حامد)">عيادة الباطنة والسكري (د. نيفين حامد)</option>
+        <option value="عيادة القلب والأوعية (د. طارق العوضي)">عيادة القلب والأوعية (د. طارق العوضي)</option>
+        <option value="عيادة العظام والمفاصل (د. سامح البحيري)">عيادة العظام والمفاصل (د. سامح البحيري)</option>
+        <option value="عيادة الأطفال والرضع (د. هبة عبد الرحمن)">عيادة الأطفال (د. هبة عبد الرحمن)</option>
+      </select>
+      <input type="date" id="clinicDate">
+      <button class="btn" onclick="confirmClinicBooking()">تأكيد حجز العيادة</button>
+      <button class="btn" style="margin-top:6px; opacity: 0.75;" onclick="toggleClinicModal(false)">إغلاق</button>
+      <div id="clinicResult" style="margin-top: 8px; font-weight: bold; font-size: 0.8em;"></div>
+    </div>
+  </div>
+
+  <div id="archiveModal" class="modal">
+    <div class="modal-content">
+      <h3>📁 الأرشيف والتاريخ الطبي للمريض</h3>
+      <p>سجل بياناتك الصحية لتكون مرجعاً دائماً.</p>
+      <input type="text" id="archName" placeholder="اسم المريض بالكامل">
+      <input type="number" id="archAge" placeholder="العمر">
+      <select id="archBlood">
+        <option value="">-- فصيلة الدم --</option>
+        <option value="O+">O+</option>
+        <option value="O-">O-</option>
+        <option value="A+">A+</option>
+        <option value="A-">A-</option>
+        <option value="B+">B+</option>
+        <option value="B-">B-</option>
+        <option value="AB+">AB+</option>
+        <option value="AB-">AB-</option>
+      </select>
+      <input type="text" id="archChronic" placeholder="الأمراض المزمنة (مثل: ضغط، سكري)">
+      <input type="text" id="archAllergy" placeholder="الحساسية الدوائية أو الغذائية">
+      <button class="btn" onclick="savePatientArchive()">حفظ في أرشيف المستشفى</button>
+      <button class="btn" style="margin-top:6px; opacity: 0.75;" onclick="toggleArchiveModal(false)">إغلاق</button>
+      <div id="archiveResult" style="margin-top: 8px; font-weight: bold; font-size: 0.8em;"></div>
+    </div>
+  </div>
+
+  <div id="bookingModal" class="modal">
+    <div class="modal-content">
+      <h3>🏨 حجز موعد مع أشهر مستشفيات مصر</h3>
+      <p>اختر المستشفى والتخصص المناسب لحالتك.</p>
+      <input type="text" id="patientName" placeholder="اسم المريض الثلاثي">
+      <select id="hospitalSelect">
+        <option value="">-- اختر المستشفى المشهور --</option>
+        <option value="مستشفى قصر العيني (القاهرة)">مستشفى قصر العيني (القاهرة)</option>
+        <option value="مستشفى الدمرداش الجامعي (القاهرة)">مستشفى الدمرداش الجامعي (القاهرة)</option>
+        <option value="مستشفى دار الفؤاد (6 أكتوبر / الجيزة)">مستشفى دار الفؤاد (6 أكتوبر / الجيزة)</option>
+        <option value="مستشفى السلام الدولي (المعادي)">مستشفى السلام الدولي (المعادي)</option>
+        <option value="مستشفى السعودي الألماني (الجيزة)">مستشفى السعودي الألماني (الجيزة)</option>
+        <option value="مستشفى الشاطبي الجامعي (الإسكندرية)">مستشفى الشاطبي الجامعي (الإسكندرية)</option>
+      </select>
+      <select id="deptSelect">
+        <option value="">-- اختر التخصص الطبي --</option>
+        <option value="قسم طب وجراحة الأسنان واللثة">قسم طب وجراحة الأسنان واللثة</option>
+        <option value="قسم الباطنة العامة والجهاز الهضمي">قسم الباطنة العامة والجهاز الهضمي</option>
+        <option value="قسم العظام والعمود الفقري">قسم العظام والعمود الفقري</option>
+        <option value="قسم الأطفال والرضع">قسم الأطفال والرضع</option>
+        <option value="قسم القلب والأوعية الدموية">قسم القلب والأوعية الدموية</option>
+        <option value="قسم المخ والأعصاب والصداع">قسم المخ والأعصاب والصداع</option>
+      </select>
+      <input type="date" id="bookingDate">
+      <button class="btn" onclick="confirmBooking()">تأكيد حجز الموعد وتوليد تذكرة الكشف</button>
+      <button class="btn" style="margin-top:6px; opacity: 0.75;" onclick="toggleBookingModal(false)">إغلاق</button>
+      <div id="bookingResult" style="margin-top: 8px; font-weight: bold; font-size: 0.8em;"></div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+    let particlesArray = [];
+    
+    let mouse = {
+      x: null,
+      y: null,
+      radius: 130
+    };
+
+    window.addEventListener('mousemove', function(event) {
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+    });
+
+    window.addEventListener('mouseout', function() {
+      mouse.x = undefined;
+      mouse.y = undefined;
+    });
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor(x, y, directionX, directionY, size, color) {
+        this.x = x;
+        this.y = y;
+        this.directionX = directionX;
+        this.directionY = directionY;
+        this.size = size;
+        this.color = color;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+      }
+      update() {
+        if (this.x > canvas.width || this.x < 0) {
+          this.directionX = -this.directionX;
+        }
+        if (this.y > canvas.height || this.y < 0) {
+          this.directionY = -this.directionY;
+        }
+
+        let dx = mouse.x - this.x;
+        let dy = mouse.y - this.y;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        if (mouse.x !== undefined && distance < mouse.radius) {
+          if (mouse.x < this.x && this.x < canvas.width - 10) this.x += 1.5;
+          if (mouse.x > this.x && this.x > 10) this.x -= 1.5;
+          if (mouse.y < this.y && this.y < canvas.height - 10) this.y += 1.5;
+          if (mouse.y > this.y && this.y > 10) this.y -= 1.5;
+        }
+
+        this.x += this.directionX;
+        this.y += this.directionY;
+        this.draw();
+      }
+    }
+
+    function initParticles() {
+      particlesArray = [];
+      let numberOfParticles = (canvas.width * canvas.height) / 11000;
+      for (let i = 0; i < numberOfParticles; i++) {
+        let size = (Math.random() * 2) + 1;
+        let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+        let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+        let directionX = (Math.random() * 0.8) - 0.4;
+        let directionY = (Math.random() * 0.8) - 0.4;
+        let color = 'rgba(56, 189, 248, 0.55)';
+        particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+      }
+    }
+
+    function animateParticles() {
+      requestAnimationFrame(animateParticles);
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      for (let i = 0; i < particlesArray.length; i++) {
+        particlesArray[i].update();
+      }
+      connectParticles();
+    }
+
+    function connectParticles() {
+      let opacityValue = 1;
+      for (let a = 0; a < particlesArray.length; a++) {
+        for (let b = a + 1; b < particlesArray.length; b++) {
+          let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) +
+                         ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+          if (distance < (canvas.width / 9) * (canvas.height / 9)) {
+            opacityValue = 1 - (distance / 18000);
+            ctx.strokeStyle = 'rgba(56, 189, 248, ' + (opacityValue * 0.15) + ')';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+            ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    initParticles();
+    animateParticles();
+
+    document.addEventListener("DOMContentLoaded", function() {
+      const observerOptions = {
+        root: null,
+        rootMargin: "-20% 0px -20% 0px",
+        threshold: 0.15
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("active-slide");
+          } else {
+            entry.target.classList.remove("active-slide");
+          }
+        });
+      }, observerOptions);
+
+      document.querySelectorAll(".slide-card").forEach(card => {
+        observer.observe(card);
+      });
+
+      renderDashboards("");
+    });
+
+
+    let currentPatientArchive = null;
+
+    const diseasesData = [
+      { id: 1, department: "🦷 قسم طب الأسنان واللثة", name: "التهاب عصب الأسنان الحاد", symptoms: ["ألم نابض شديد ليلاً", "عدم القدرة على النوم من الألم", "وجع يمتد للأذن"], doctor: "أخصائي علاج جذور وعصب", meds: "كتفاست 50 ملغ + أموكسيكلاف 1 جم", advice: "تجنب الأكل أو الشرب الساخن والتوجه لطبيب الأسنان." },
+      { id: 2, department: "🦷 قسم طب الأسنان واللثة", name: "خراج الأسنان والفك", symptoms: ["تورم واضح بالخد أو الفك", "انتفاخ بثرة صديدية باللثة", "ألم مبرح مع حرارة"], doctor: "جراح فم وأسنان", meds: "مضاد حيوي اوجمانتين + مسكن قوي", advice: "الذهاب الفوري لتفريغ الصديد وتجنب الكمادات الساخنة." },
+      { id: 3, department: "🩺 قسم الباطنة والجهاز الهضمي", name: "التهاب المعدة والحموضة", symptoms: ["حرقة فم المعدة", "حموضة ليلية", "تجشؤ مستمر"], doctor: "أخصائي جهاز هضمي", meds: "أوميبرازول 20 ملغ", advice: "تجنب الأطعمة الحارقة والوجبات الدسمة قبل النوم." },
+      { id: 4, department: "🩺 قسم الباطنة والجهاز الهضمي", name: "قرحة المعدة والإثنا عشر", symptoms: ["ألم حارق بعد الأكل", "غثيان الصباح", "فقدان شهية"], doctor: "أخصائي باطنة", meds: "مثبطات مضخة البروتون + بانتوبرازول", advice: "تناول وجبات صغيرة متكررة والابتعاد عن المسكنات." },
+      { id: 5, department: "🧠 قسم المخ والأعصاب", name: "الصداع النصفي (الشقيقة)", symptoms: ["نبض مؤلم في جانب واحد من الرأس", "حساسية شديدة للضوء والصوت", "غثيان ودوخة"], doctor: "أخصائي مخ وأعصاب", meds: "سوماتريبتان + مسكن باراسيتامول", advice: "الاسترخاء في غرفة مظلمة وباردة." },
+      { id: 6, department: "🧠 قسم المخ والأعصاب", name: "التهاب الأعصاب الطرفية", symptoms: ["خدر ووخز بالأصابع والقدمين", "حرقان باطن القدم", "ضعف عضلي خفيف"], doctor: "أخصائي أعصاب", meds: "كبسولات نيوروتون فيتامين ب المركب", advice: "ضبط معدلات السكر بالدم وممارسة المشي الخفيف." },
+      { id: 7, department: "🌬️ قسم الصدرية والحساسية", name: "الربو الشعبي والحساسية", symptoms: ["نوبات ضيق تنفس", "سعال ليلى متكرر", "صفير بالصدر"], doctor: "أخصائي صدرية", meds: "بخاخ موسع شعب هوائية (فنتولين)", advice: "تجنب الأتربة والروائح النفاذة والتدخين." },
+      { id: 8, department: "🌬️ قسم الصدرية والحساسية", name: "التهاب الشعب الهوائية الحاد", symptoms: ["كحة مصحوبة ببلغم", "حمى خفيفة", "إرهاق بالصدر"], doctor: "أخصائي صدر وجهاز تنفسي", meds: "طارد بلغم ومضاد حيوي مناسب", advice: "شرب السوائل الدافئة والراحة التامة." },
+      { id: 9, department: "🦴 قسم العظام والمفاصل", name: "خشونة الركبة والمفاصل", symptoms: ["ألم عند ثني الركبة وصعود السلم", "صوت طقطقة بالمفصل", "تورم خفيف صباحاً"], doctor: "أخصائي عظام ومفاصل", meds: "أقراص جلوكوزامين + مسكن موضعي جل", advice: "إنقاص الوزن الزائد وتجنب الجلوس خاطئاً." },
+      { id: 10, department: "🌿 قسم الجلدية والتجميل", name: "الإكزيما والتهاب الجلد التحسسي", symptoms: ["حكة شديدة بالجلد", "جفاف وقشور جلدية", "احمرار وتهيج"], doctor: "أخصائي أمراض جلدية", meds: "كريم هيدروكورتيزون موضعي + مضاد هيستامين", advice: "استخدام مرطبات طبية خالية من العطور." },
+      { id: 11, department: "❤️ قسم القلب والأوعية الدموية", name: "ارتفاع ضغط الدم المزمن", symptoms: ["صداع مؤخرة الرأس صباحاً", "زغللة مؤقتة بالعين", "خفقان سريع بالقلب"], doctor: "أخصائي قلب وأوعية دموية", meds: "أقراص أيلصارتان أو كونكور حسب الاستشارى", advice: "تقليل الأملاح والتوتر ومتابعة الضغط يومياً." },
+      { id: 12, department: "👁️ قسم العيون والرؤية", name: "التهاب الملتحمة (العين الوردي)", symptoms: ["احمرار شديد بالعين", "إفرازات صديدية أو مائية صباحاً", "حرقان وحكة"], doctor: "أخصائي رمد وعيون", meds: "قطرة مضاد حيوي (توبرادكس)", advice: "عدم فرك العين واستخدام منشفة شخصية." },
+      { id: 13, department: "👂 قسم الأنف والأذن والحنجرة", name: "التهاب الأذن الوسطى", symptoms: ["ألم حاد داخل الأذن", "نقص مؤقت بالسمع", "ارتفاع درجة الحرارة"], doctor: "أخصائي أنف وأذن وحنجرة", meds: "قطرة أذن مسكنة + مضاد حيوي", advice: "عدم دخول الماء داخل الأذن أثناء الاستحمام." },
+      { id: 14, department: "🧘 قسم الصحة النفسية والتوتر", name: "اضطراب القلق العام والتوتر", symptoms: ["سرعة دقات القلب دون إجهاد", "قلق مستتمر واضطراب نوم", "شد عصبي وعضلي"], doctor: "استشاري طب نفسي", meds: "مهدئات عشبية طبية (البابونج / جلسات استرخاء)", advice: "ممارسة تمارين التنفس العميق والابتعاد عن المنبهات." },
+      { id: 15, department: "🩺 قسم الغدد الصماء والسكري", name: "قصور الغدة الدرقية", symptoms: ["إرهاق وخمول مستمر", "زيادة بالوزن رغم تقليل الأكل", "جفاف الجلد وتساقط الشعر"], doctor: "أخصائي غدد صماء", meds: "هرمون الثيروكسين (أيلتروكسين)", advice: "إجراء تحليل TSH دوري كل 3 أشهر." },
+      { id: 16, department: "💧 قسم الكلى والمثانة", name: "التهاب المسالك البولية (الحرقان)", symptoms: ["حرقان شديد أثناء التبول", "رغبة متكررة وملحة للتبول", "ألم أسفل البطن"], doctor: "أخصائي كلى ومسالك", meds: "فوار يوروسلاف + مضاد حيوي (سيبروفلوكساسين)", advice: "شرب كميات وفيرة من الماء (أكثر من 3 لترات يومياً)." },
+      { id: 17, department: "🧪 قسم أمراض الكبد", name: "الدهون على الكبد (التهاب الكبد الدهني)", symptoms: ["شعور بثقل بالجانب الأيمن العلوي", "إرهاق عام واختبارات كبد مرتفعة", "زيادة محيط الخصر"], doctor: "أخصائي كبد ومعدة", meds: "أقراص أورسوديول أو مكملات أوميغا 3", advice: "الابتعاد عن الدهون المشبعة وخفض الوزن." },
+      { id: 18, department: "🛡️ قسم الروماتيزم والمناعة", name: "التهاب المفاصل الروماتويدي", symptoms: ["تورم وتيبس مفاصل اليدين صباحاً", "ألم متزامن بمفاصل الجانبين", "إرهاق وحمى خفيفة"], doctor: "أخصائي روماتيزم ومناعة", meds: "مضادات التهاب غير ستيرويدية + مسكنات", advice: "الحفاظ على حركة المفاصل بلطف دون إجهاد." },
+      { id: 19, department: "🦠 قسم الأمراض المعدية", name: "النزلة المعوية الحادة", symptoms: ["إسهال شديد ومفاجئ", "غثيان وتقلصات مؤلمة بالبطن", "جفاف ودوخة"], doctor: "أخصائي أمراض معدية وباطنة", meds: "محلول معالجة الجفاف + انتروجيرمين", advice: "الاعتماد على السوائل وأكل البطاطس المسلوقة." },
+      { id: 20, department: "🩸 قسم أمراض الدم والأنيميا", name: "فقر الدم الحاد (الأنيميا)", symptoms: ["شحوب الوجه والشفاه", "دوخة وضيق تنفس عند المجهود", "برودة الأطراف وضعف عام"], doctor: "أخصائي أمراض دم وباطنة", meds: "كبسولات حديد (فروز أو فيترون) + فيتامين سي", advice: "تناول الأطعمة الغنية بالحديد (الكببد، الخضروات الورقية)." },
+      { id: 21, department: "🔪 قسم الجراحة العامة", name: "التهاب الزائدة الدودية الحاد", symptoms: ["ألم مفاجئ يبدأ حول السرة وينتقل للجانب الأيمن السفلي", "غثيان وقيء وفقدان شهية", "ارتفاع طفيف بالحرارة"], doctor: "استشاري الجراحة العامة", meds: "ممنوع المسكنات ويجب التدخل الجراحي الفوري", advice: "التوجه الفوري لطوارئ المستشفى لعدم حدوث انفجار." },
+      { id: 22, department: "👶 قسم أمراض النساء والتوليد", name: "آلام وتقلصات الطمث الشديدة", symptoms: ["تشنجات مؤلمة أسفل البطن والظهر", "صداع وتقلبات مزاجية", "إرهاق عام"], doctor: "أخصائي نساء وتوليد", meds: "بوسكوبان أو بروفين عند الألم", advice: "استخدام كمادات دافئة أسفل البطن وشرب أعشاب مهدئة." },
+      { id: 23, department: "🍼 قسم الأطفال والرضع", name: "المغص والغازات عند الرضع", symptoms: ["بكاء مستمر وشديد بلا سبب واضح", "ثني الساقين نحو البطن", "انتفاخ وقساوة بالبطن"], doctor: "أخصائي طب الأطفال", meds: "نقط سينكارين أو سبازموكيور للرضع", advice: "تكريعة الرضع جيداً بعد كل رضعة." },
+      { id: 24, department: "🔬 قسم المسالك البولية والتناسلية", name: "حصوات الكلى والحالب", symptoms: ["ألم كلوي شديد جداً ومفاجئ (المغص الكلوي)", "وجود دم بالبول", "غثيان ورغبة بالقيء"], doctor: "أخصائي مسالك بولية", meds: "مسكنات قوية (كيتولاك أو روفيناك) + فوار", advice: "شرب كميات كبيرة جداً من الماء لمساعدة النزول." },
+      { id: 25, department: "🦷 قسم جراحة الفم والأسنان", name: "نزيف ما بعد خلع الضرس", symptoms: ["نزيف مستمر مكان الخلع", "ألم بمكان الجرح", "طعم معدني بالفم"], doctor: "جراح فم وأسنان", meds: "استخدام شاش معقم والضغط عليه", advice: "عدم المضمضة العنيفة أو البصق لمدة 24 ساعة." },
+      { id: 26, department: "🎗️ قسم الأورام والمتابعة", name: "الإرهاق المزمن غير المبرر", symptoms: ["تعب شديد لا ينقصه النوم", "فقدان وزن مفاجئ وملحوظ", "تعرق ليلي غزير"], doctor: "استشاري الأورام والباطنة", meds: "إجراء تحاليل شاملة وأشعة مقطعية للاطمئنان", advice: "متابعة دورية مع الطبيب المختص." },
+      { id: 27, department: "💆 قسم العلاج الطبيعي والتأهيل", name: "الإنزلاق الغضروفي (الديسك)", symptoms: ["ألم حاد أسفل الظهر يمتد للساق (عرق النسا)", "تنميل ووخز بالقدم", "صعوبة في الوقوف لفترات طويلة"], doctor: "أخصائي علاج طبيعي وعمود فقري", meds: "بسط للعضلات ومضادات التهاب", advice: "تجنب حمل الأشياء الثقيلة والالتواء المفاجئ." },
+      { id: 28, department: "🥗 قسم التغذية العلاجية والسمنة", name: "سوء التغذية ونقص الفيتامينات", symptoms: ["تقصف الأظافر وتساقط الشعر الحاد", "تشققات زوايا الفم", "شعور دائري بالدوخة والإجهاد"], doctor: "أخصائي تغذية علاجية", meds: "مكملات غذائية متكاملة (فيتامين د وكالسيوم)", advice: "تناول وجبات متوازنة تحتوي على البروتين والخضار." }
+    ];
+
+    function renderDashboards(filterText = "") {
+      const container = document.getElementById("dashboardsList");
+      container.innerHTML = "";
+      
+      const filtered = diseasesData.filter(d => 
+        d.name.toLowerCase().includes(filterText.toLowerCase()) ||
+        d.department.toLowerCase().includes(filterText.toLowerCase()) ||
+        d.symptoms.some(s => s.toLowerCase().includes(filterText.toLowerCase()))
+      );
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p style="text-align:center; color:#cbd5e1; font-size:0.85em; margin-top:20px;">عذراً، لم يتم العثور على نتائج مطابقة لبحثك.</p>`;
+        return;
+      }
+
+      let grouped = {};
+      filtered.forEach(d => {
+        if (!grouped[d.department]) grouped[d.department] = [];
+        grouped[d.department].push(d);
+      });
+
+      for (let dept in grouped) {
+        let deptHeader = document.createElement("div");
+        deptHeader.className = "department-header";
+        deptHeader.innerText = dept;
+        container.appendChild(deptHeader);
+
+        grouped[dept].forEach(d => {
+          let div = document.createElement("div");
+          div.className = "dashboard-item";
+          div.innerHTML = `
+            <h4>${d.name}</h4>
+            <div class="symptom-grid">
+              ${d.symptoms.map(s => `<span class="symptom-item" onclick="selectSymptom('${s}')">☑ ${s}</span>`).join('')}
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      }
+    }
+
+    function filterDashboards() {
+      let query = document.getElementById("searchInput").value;
+      renderDashboards(query);
+    }
+
+    function selectSymptom(symptomText) {
+      let customInput = document.getElementById("customSymptomsInput");
+      if (customInput.value) {
+        customInput.value += "، " + symptomText;
+      } else {
+        customInput.value = symptomText;
+      }
+    }
+
+    function runDiagnosis() {
+      let text = document.getElementById("customSymptomsInput").value.trim();
+      let output = document.getElementById("output");
+      
+      if (!text) {
+        output.innerText = "⚠️ برجاء كتابة الأعراض أو اختيارها من الأقسام بالأعلى أولاً لتشخيص الحالة وعرض العلاج المناسب.";
+        return;
+      }
+
+      let matchedDisease = diseasesData.find(d => 
+        d.symptoms.some(s => text.includes(s)) || text.includes(d.name)
+      );
+
+      if (matchedDisease) {
+        output.innerHTML = `🔬 <strong>التقرير التشخيصي والروشتة الطبية:</strong>
+• <strong>القسم:</strong> ${matchedDisease.department}
+• <strong>الحالة المكتشفة:</strong> ${matchedDisease.name}
+• <strong>الطبيب المختص:</strong> ${matchedDisease.doctor}
+• <strong>العلاج الموصى به:</strong> ${matchedDisease.meds}
+• <strong>الإرشادات الطبية:</strong> ${matchedDisease.advice}`;
+      } else {
+        output.innerHTML = `🔬 <strong>نتائج التشخيص الفوري:</strong>
+• <strong>الأعراض المدخلة:</strong> ${text}
+• <strong>التشخيص المبدئي:</strong> حالة عامة تتطلب الفحص السريري الدقيق.
+• <strong>العلاج المقترح:</strong> راحة تامة ومسكن خفيف عند الحاجة.
+• <strong>النصيحة:</strong> يرجى زيارة الطبيب المختص أو أقرب مستشفى إذا استمرت الأعراض.`;
+      }
+    }
+
+    function triggerEmergencySOS() {
+      let output = document.getElementById("output");
+      output.innerHTML = `🚨 <strong>تم تفعيل نداء الطوارئ القصوى (SOS) بنجاح!</strong>
+• تم التقاط موقعك الحالي عبر GPS بدقة وإرساله لغرفة العمليات المركزية.
+• تم التواصل تلقائياً مع أقرب سيارة إسعاف وتوجيهها لموقعك الآن.`;
+      alert("🚨 تم إرسال إستغاثة الطوارئ (SOS) والموقع بنجاح!");
+    }
+
+    function findNearestDonationLocation() {
+      let hospOut = document.getElementById("hospitalArchiveOutput");
+      hospOut.innerHTML = `📍 <strong>تحديد أقرب مكان للتبرع بالدم (GPS):</strong>
+• <strong>أقرب مركز معتمد:</strong> بنك الدم الرئيسي الإقليمي (القاهرة).
+• <strong>المسافة المقدرة:</strong> 1.8 كم (حوالي 5 دقائق بالسيارة من موقعك الحالي).
+• <strong>حالة العمل:</strong> متاح الآن على مدار 24 ساعة لاستقبال المتبرعين.`;
+      alert("📍 تم تحديد أقرب بنك دم وعرضه في أرشيف السلايد الثالث!");
+    }
+
+    function checkAvailableBedsGPS() {
+      let hospOut = document.getElementById("hospitalArchiveOutput");
+      hospOut.innerHTML = `🛏️ <strong>أقرب مستشفى متوفر به أماكن وأسرة شاغرة لموقعك:</strong>
+• <strong>1. مستشفى قصر العيني الجامعي:</strong> متوفر (3 أسرة رعاية مركزة + 12 سرير طوارئ) - تبعد 1.4 كم.
+• <strong>2. مستشفى دار الفؤاد:</strong> متوفر (2 غرفة عادية + سرير عمليات عاجلة) - تبعد 3.2 كم.
+• <strong>الحالة:</strong> تم حجز أولوية توجيه المريض وتفعيل مسار الخريطة GPS بنجاح.`;
+      alert("🛏️ تم عرض أقرب المستشفيات الشاغرة في أرشيف السلايد الثالث!");
+    }
+
+    function toggleComplaintModal(show) {
+      document.getElementById("complaintModal").style.display = show ? "flex" : "none";
+    }
+
+    function submitComplaint() {
+      let name = document.getElementById("compPatientName").value;
+      let hosp = document.getElementById("compHospitalSelect").value;
+      let details = document.getElementById("compDetails").value;
+      let res = document.getElementById("compResult");
+
+      if (!name || !hosp || !details) {
+        res.style.color = "#fca5a5";
+        res.innerText = "⚠️ برجاء استكمال كافة بيانات الشكوى والمستشفى.";
+        return;
+      }
+
+      let ticketCode = "COMP-" + Math.floor(100000 + Math.random() * 900000);
+      res.style.color = "#86efac";
+      res.innerText = `✅ تم إرسال الشكوى بنجاح! رقم المرجع: ${ticketCode}`;
+      
+      setTimeout(() => {
+        toggleComplaintModal(false);
+        document.getElementById("output").innerHTML = `⚠️ <strong>تسجيل شكوى رسمية جديدة:</strong>
+• <strong>المشتكي:</strong> ${name} | <strong>المستشفى:</strong> ${hosp}
+• <strong>رقم مرجع الشكوى:</strong> ${ticketCode}
+• <strong>الحالة:</strong> تحت المراجعة الفورية من لجنة جودة الرعاية الصحية.`;
+      }, 1500);
+    }
+
+    function toggleNursingModal(show) {
+      document.getElementById("nursingModal").style.display = show ? "flex" : "none";
+    }
+
+    function requestHomeNurse() {
+      let name = document.getElementById("nursingPatientName").value;
+      let addr = document.getElementById("nursingAddress").value;
+      let nurse = document.getElementById("nursingSelect").value;
+      let service = document.getElementById("nursingServiceType").value;
+      let res = document.getElementById("nursingResult");
+
+      if (!name || !addr || !nurse || !service) {
+        res.style.color = "#fca5a5";
+        res.innerText = "⚠️ يرجى ملء كافة البيانات وعنوان المنزل.";
+        return;
+      }
+
+      res.style.color = "#86efac";
+      res.innerText = "✅ جاري إرسال الطلب والموقع للممرض المختص...";
+      
+      setTimeout(() => {
+        toggleNursingModal(false);
+        document.getElementById("output").innerHTML = `💉 <strong>تأكيد طلب التمريض المنزلي:</strong>
+• <strong>المريض:</strong> ${name} | <strong>العنوان:</strong> ${addr}
+• <strong>الممرض المسئول:</strong> ${nurse} (${service})
+• <strong>الحالة:</strong> في طريقه إليك الآن (مع تتبع GPS).`;
+      }, 1200);
+    }
+
+    function togglePharmacyModal(show) {
+      document.getElementById("pharmacyModal").style.display = show ? "flex" : "none";
+    }
+
+    function confirmPharmacyOrder() {
+      let name = document.getElementById("pharmacyPatientName").value;
+      let addr = document.getElementById("pharmacyAddress").value;
+      let pharm = document.getElementById("pharmacySelect").value;
+      let meds = document.getElementById("pharmacyMedicines").value;
+      let res = document.getElementById("pharmacyResult");
+
+      if (!name || !addr || !pharm) {
+        res.style.color = "#fca5a5";
+        res.innerText = "⚠️ يرجى إدخال الاسم والعنوان واسم الصيدلية.";
+        return;
+      }
+
+      res.style.color = "#86efac";
+      res.innerText = "✅ تم إرسال طلب الدليفري للصيدلية بنجاح!";
+      
+      setTimeout(() => {
+        togglePharmacyModal(false);
+        document.getElementById("output").innerHTML = `💊 <strong>تأكيد طلب أدوية دليفري:</strong>
+• <strong>العميل:</strong> ${name} | <strong>العنوان:</strong> ${addr}
+• <strong>الصيدلية:</strong> ${pharm} | <strong>الأدوية:</strong> ${meds || "تم إرفاق الروشتة"}
+• <strong>الحالة:</strong> الدليفري في طريقه لتوصيل الأدوية خلال 20 دقيقة.`;
+      }, 1200);
+    }
+
+    function toggleClinicModal(show) {
+      document.getElementById("clinicModal").style.display = show ? "flex" : "none";
+    }
+
+    function confirmClinicBooking() {
+      let name = document.getElementById("clinicPatientName").value;
+      let clinic = document.getElementById("clinicSelect").value;
+      let date = document.getElementById("clinicDate").value;
+      let res = document.getElementById("clinicResult");
+
+      if (!name || !clinic || !date) {
+        res.style.color = "#fca5a5";
+        res.innerText = "⚠️ برجاء إدخال اسم المريض واختيار الموعد.";
+        return;
+      }
+
+      res.style.color = "#86efac";
+      res.innerText = "✅ تم تأكيد حجز الكشف بالعيادة الخاصة بنجاح!";
+      
+      setTimeout(() => {
+        toggleClinicModal(false);
+        document.getElementById("output").innerHTML = `🏛️ <strong>تذكرة حجز عيادة خاصة:</strong>
+• <strong>المريض:</strong> ${name} | <strong>العيادة:</strong> ${clinic}
+• <strong>موعد الكشف:</strong> ${date} (مؤكد).`;
+      }, 1200);
+    }
+
+    function toggleArchiveModal(show) {
+      document.getElementById("archiveModal").style.display = show ? "flex" : "none";
+    }
+
+    function savePatientArchive() {
+      let name = document.getElementById("archName").value;
+      let age = document.getElementById("archAge").value;
+      let blood = document.getElementById("archBlood").value;
+      let chronic = document.getElementById("archChronic").value;
+      let allergy = document.getElementById("archAllergy").value;
+      let res = document.getElementById("archiveResult");
+
+      if (!name || !blood) {
+        res.style.color = "#fca5a5";
+        res.innerText = "⚠️ برجاء إدخال اسم المريض وفصيلة الدم.";
+        return;
+      }
+
+      currentPatientArchive = { name, age, blood, chronic, allergy };
+      res.style.color = "#86efac";
+      res.innerText = "✅ تم حفظ الملف الطبي في أرشيف المستشفى بنجاح!";
+
+      setTimeout(() => {
+        toggleArchiveModal(false);
+        document.getElementById("output").innerHTML = `📁 <strong>الأرشيف والتاريخ الطبي للمريض:</strong>
+• <strong>الاسم:</strong> ${name} | <strong>العمر:</strong> ${age || "غير محدد"} سنة | <strong>فصيلة الدم:</strong> ${blood}
+• <strong>الأمراض المزمنة:</strong> ${chronic || "لا يوجد"} | <strong>الحساسية:</strong> ${allergy || "لا يوجد"}`;
+      }, 1200);
+    }
+
+    function toggleBookingModal(show) {
+      document.getElementById("bookingModal").style.display = show ? "flex" : "none";
+    }
+
+    function confirmBooking() {
+      let name = document.getElementById("patientName").value;
+      let hosp = document.getElementById("hospitalSelect").value;
+      let dept = document.getElementById("deptSelect").value;
+      let date = document.getElementById("bookingDate").value;
+      let res = document.getElementById("bookingResult");
+
+      if (!name || !hosp || !dept || !date) {
+        res.style.color = "#fca5a5";
+        res.innerText = "⚠️ يرجى ملء كافة بيانات الحجز بالمستشفى.";
+        return;
+      }
+
+      let ticketID = "HOSP-" + Math.floor(1000 + Math.random() * 9000);
+      res.style.color = "#86efac";
+      res.innerText = `✅ تم الحجز بنجاح! كود التذكرة: ${ticketID}`;
+
+      setTimeout(() => {
+        toggleBookingModal(false);
+        document.getElementById("output").innerHTML = `🏨 <strong>تذكرة حجز مستشفى رسمية (${ticketID}):</strong>
+• <strong>المريض:</strong> ${name} | <strong>المستشفى:</strong> ${hosp}
+• <strong>التخصص:</strong> ${dept} | <strong>موعد الحجز:</strong> ${date}`;
+      }, 1500);
+    }
+
+    function submitRatings() {
+      let appRate = document.getElementById("appRating").value;
+      let hosp = document.getElementById("hospitalRating").value;
+      let hospScore = document.getElementById("hospScore").value;
+      let doc = document.getElementById("doctorRating").value;
+      let docScore = document.getElementById("docScore").value;
+      let nurse = document.getElementById("nurseRating").value;
+      let nurseScore = document.getElementById("nurseScore").value;
+      let output = document.getElementById("output");
+
+      if (!appRate && !hosp && !doc && !nurse) {
+        alert("⚠️ يرجى اختيار تقييم واحد على الأقل قبل الإرسال.");
+        return;
+      }
+
+      output.innerHTML = `⭐ <strong>سجل التقييمات المرسلة:</strong>
+• <strong>التطبيق:</strong> ${appRate || "لم يتم"} | <strong>المستشفى (${hosp || "بدون"}):</strong> ${hospScore || "---"}
+• <strong>الطبيب (${doc || "بدون"}):</strong> ${docScore || "---"} | <strong>الممرض (${nurse || "بدون"}):</strong> ${nurseScore || "---"}`;
+      
+      alert("✨ شكراً لك! تم إرسال وحفظ كافة التقييمات بنجاح.");
+    }
+  </script>
+</body>
+</html>
